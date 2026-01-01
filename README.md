@@ -1,4 +1,4 @@
-# Claude Clone CLI
+# ✨PyClaudeCLI✨
 
 A powerful command-line interface for interacting with advanced AI models via AWS Bedrock. This tool simulates the experience of using Claude and other models directly from your terminal, with features like file attachments, syntax highlighting, and easy code copying.
 
