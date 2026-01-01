@@ -75,5 +75,9 @@ aws bedrock-runtime invoke-converse --model-id us.anthropic.claude-sonnet-4-5-20
 To list all foundation models (with their model ids) available run the following aws command:
 
 ```bash
+# simple command to list all details
+aws bedrock list-foundation-models
+
+# show in table format
 aws bedrock list-foundation-models --query 'modelSummaries[*].[modelId,modelName]' --output table
 ```
