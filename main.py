@@ -9,15 +9,15 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
-from rich.style import Style
-from rich.live import Live
-from rich.text import Text
+# from rich.style import Style
+# from rich.live import Live
+# from rich.text import Text
 from rich import print as rprint
 import pyperclip
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.styles import Style as PromptStyle
+# from prompt_toolkit.styles import Style as PromptStyle
 
 # Initialize Typer app and Rich console
 app = typer.Typer()
@@ -42,7 +42,7 @@ class Config:
         "opus-4.1": {
             "modelId": "us.anthropic.claude-opus-4-1-20250805-v1:0",
             "description": "Most capable model for complex tasks"
-        },        
+        },
         "deepseek R1": {
             "modelId": "us.deepseek.r1-v1:0",
             "description": "Reasoning focused model"
@@ -60,15 +60,20 @@ class ChatSession:
         self.last_code_blocks: List[str] = []
         self.prompt_session = PromptSession()
 
+        # Token and model usage tracking
+        self.total_input_tokens: int = 0
+        self.total_output_tokens: int = 0
+        self.model_usage: Dict[str, int] = {}
+
     def add_user_message(self, content: str):
         msg_content = [{"text": content}]
-        
+
         # Add attachments if any
         if self.attachments:
             file_context = "\n\nAttached Files:\n"
             for name, body in self.attachments:
                 file_context += f"--- BEGIN FILE: {name} ---\n{body}\n--- END FILE: {name} ---\n"
-            
+
             msg_content[0]["text"] += file_context
             self.attachments = [] # Clear attachments after sending
 
@@ -91,7 +96,7 @@ class ChatSession:
         for idx, model in enumerate(models):
             desc = Config.MODELS[model]["description"]
             rprint(f"{idx + 1}. {model} - [dim]{desc}[/dim]")
-        
+
         choice = Prompt.ask("Select a model", choices=[str(i+1) for i in range(len(models))], default="1")
         self.current_model = models[int(choice) - 1]
         rprint(f"[green]Switched to {self.current_model}[/green]")
@@ -108,13 +113,13 @@ class ChatSession:
                     content = path.read_text(encoding='utf-8')
                 except UnicodeDecodeError:
                     content = "<Binary File>"
-                    
+
                 self.attachments.append((path.name, content))
                 rprint(f"[green]Attached file: {path.name}[/green]")
             except Exception as e:
                 rprint(f"[red]Error reading file: {e}[/red]")
         elif path.is_dir():
-            # For directories, we'll list contents and maybe ask to attach all? 
+            # For directories, we'll list contents and maybe ask to attach all?
             # For now, let's just list and allow picking or attaching all text files (careful with size)
             # Implementation: Attach all text files in the root of the folder (non-recursive for safety)
             confirmation = Confirm.ask(f"Do you want to attach all text files in '{path.name}'?")
@@ -124,7 +129,7 @@ class ChatSession:
                     if item.is_file():
                         try:
                             # Simple check for text extension or try read
-                            if item.suffix in ['.py', '.txt', '.md', '.json', '.html', '.css', '.js']:
+                            if item.suffix in ['dockerfile', 'Dockerfile', '.rs', '.ts', '.tsx', '.py', '.txt', '.md', '.json', '.yaml', '.yml', '.toml', '.html', '.css', '.scss', '.js']:
                                 content = item.read_text(encoding='utf-8')
                                 self.attachments.append((item.name, content))
                                 count += 1
@@ -145,7 +150,7 @@ class ChatSession:
         if not self.last_code_blocks:
              rprint("[red]No code blocks found in the last response.[/red]")
              return
-        
+
         index = 0
         if len(parts) < 2:
              if len(self.last_code_blocks) == 1:
@@ -159,7 +164,7 @@ class ChatSession:
             except ValueError:
                 rprint("[red]Invalid number.[/red]")
                 return
-        
+
         if 0 <= index < len(self.last_code_blocks):
             code = self.last_code_blocks[index]
             pyperclip.copy(code)
@@ -172,27 +177,27 @@ class ChatSession:
         ascii_art = r"""
     ____        ________                __     ________    ____
    / __ \__  __/ ____/ /___ ___  ______/ /__  / ____/ /   /  _/
-  / /_/ / / / / /   / / __ `/ / / / __  / _ \/ /   / /    / /  
- / ____/ /_/ / /___/ / /_/ / /_/ / /_/ /  __/ /___/ /____/ /   
-/_/    \__, /\____/_/\__,_/\__,_/\__,_/\___/\____/_____/___/   
-      /____/                                                   
+  / /_/ / / / / /   / / __ `/ / / / __  / _ \/ /   / /    / /
+ / ____/ /_/ / /___/ / /_/ / /_/ / /_/ /  __/ /___/ /____/ /
+/_/    \__, /\____/_/\__,_/\__,_/\__,_/\___/\____/_____/___/
+      /____/
         """
         rprint(Panel.fit(f"\n[bold cyan]{ascii_art}[/bold cyan]\n"
                         "\n[bold magenta]✨Welcome to PyClaudeCLI - a claude clone using aws bedrock✨[/bold magenta]\n"
                         f"[bold cyan]v{APP_VERSION}[/bold cyan]\n"
-                        "Commands: /model, /attach <path>, /copy, /code <n>, /clear, /quit", 
+                        "Commands: /model, /attach <path>, /copy, /code <n>, /clear, /quit",
                         border_style="magenta"))
-        
+
         while True:
             try:
                 # Show pending attachments in prompt if any
                 prompt_suffix = ""
                 if self.attachments:
                     prompt_suffix = f" <yellow>({len(self.attachments)} files attached)</yellow>"
-                
+
                 # Using prompt_toolkit for input
                 user_input = self.prompt_session.prompt(HTML(f"\n<b><cyan>You</cyan></b>{prompt_suffix}: "))
-                
+
                 if not user_input.strip():
                     continue
 
@@ -200,8 +205,9 @@ class ChatSession:
                 if user_input.startswith("/"):
                     parts = user_input.split()
                     command = parts[0].lower()
-                    
+
                     if command == "/quit":
+                        self.show_usage_summary()
                         rprint("[bold red]Goodbye![/bold red]")
                         break
                     elif command == "/model":
@@ -223,7 +229,10 @@ class ChatSession:
                         self.messages = []
                         self.attachments = []
                         self.last_code_blocks = []
-                        rprint("[green]Conversation cleared.[/green]")
+                        self.total_input_tokens = 0
+                        self.total_output_tokens = 0
+                        self.model_usage = {}
+                        rprint("[green]Conversation and usage stats cleared.[/green]")
                         continue
                     elif command == "/help":
                          rprint(Panel("[bold]Available Commands:[/bold]\n"
@@ -234,11 +243,11 @@ class ChatSession:
                                       "/clear - Clear conversation history\n"
                                       "/quit - Exit", title="Help"))
                          continue
-                
+
                 # Process Message
                 with console.status(f"[bold green]Claude ({self.current_model}) is thinking...[/bold green]"):
                     self.add_user_message(user_input)
-                    
+
                     try:
                         model_id = Config.MODELS[self.current_model]["modelId"]
                         # Handling Bedrock not being set up or error
@@ -251,12 +260,24 @@ class ChatSession:
                         except Exception as e:
                              # Fallback or specific error handling
                              raise e
-                        
+
                         output_message = response['output']['message']
                         response_text = output_message['content'][0]['text']
-                        
+
+                        # Track token usage
+                        usage = response.get('usage', {})
+                        input_tokens = usage.get('inputTokens', 0)
+                        output_tokens = usage.get('outputTokens', 0)
+                        self.total_input_tokens += input_tokens
+                        self.total_output_tokens += output_tokens
+
+                        # Track model usage
+                        if self.current_model not in self.model_usage:
+                            self.model_usage[self.current_model] = 0
+                        self.model_usage[self.current_model] += 1
+
                         self.add_assistant_message(response_text)
-                        
+
                         # Render markdown
                         rprint(f"\n[bold magenta]Claude ({self.current_model}):[/bold magenta]")
                         console.print(Markdown(response_text))
@@ -268,13 +289,37 @@ class ChatSession:
                                 msg += " <number>"
                             msg += " to copy.[/dim]"
                             rprint(msg)
-                        
+
                     except Exception as e:
                         rprint(f"[bold red]Error:[/bold red] {e}")
 
             except KeyboardInterrupt:
+                self.show_usage_summary()
                 rprint("\n[bold red]Goodbye![/bold red]")
                 break
+
+    def show_usage_summary(self):
+        """Display a summary panel with token and model usage statistics."""
+        if not self.model_usage:
+            # No API calls were made
+            return
+
+        # Build model usage string
+        model_usage_str = ""
+        for model, count in self.model_usage.items():
+            model_usage_str += f"  • {model}: {count} request{'s' if count != 1 else ''}\n"
+
+        summary = (
+            f"[bold cyan]Session Summary[/bold cyan]\n\n"
+            f"[bold]Model Usage:[/bold]\n{model_usage_str}\n"
+            f"[bold]Token Usage:[/bold]\n"
+            f"  • Total Input Tokens: {self.total_input_tokens:,}\n"
+            f"  • Total Output Tokens: {self.total_output_tokens:,}\n"
+            f"  • Total Tokens: {self.total_input_tokens + self.total_output_tokens:,}"
+        )
+
+        rprint("\n")
+        rprint(Panel(summary, border_style="cyan", title="💡 Usage Statistics", title_align="left"))
 
 @app.command()
 def start():
