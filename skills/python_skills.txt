@@ -1,0 +1,52 @@
+# Python Developer Skills
+
+## Core Python Proficiency
+
+Strong command of Python fundamentals including data structures (lists, dictionaries, sets, tuples), comprehensions, generators, decorators, context managers, and object-oriented programming. Experienced with Python's standard library and modern language features (type hints, pattern matching, async/await).
+
+Knowledge of latest Python features and libraries, including asyncio, aiohttp, and uvloop. Deep understanding of Python 3.14 features and libraries.
+
+## Web Development
+
+Proficient in building web applications using frameworks like 
+- FastAPI (https://fastapi.tiangolo.com/)
+- Robyn (https://robyn.tech/documentation/en)
+- Rocketry (https://rocketry.readthedocs.io/en/stable/)
+- UV (https://docs.astral.sh/uv/)
+Experience with REST API design, GraphQL, WebSocket implementations, and microservices architecture. Knowledge of ORM systems (SQLAlchemy) and database modeling.
+
+## Data & Analytics
+
+Skilled in data manipulation and analysis using pandas, NumPy, Polars and data visualization libraries (Matplotlib, Seaborn, Plotly). Experience with Jupyter notebooks for exploratory data analysis and reporting. Familiar with statistical analysis and data cleaning workflows.
+
+## Testing & Quality Assurance
+
+Strong emphasis on code quality through unit testing (pytest, unittest), integration testing, and test-driven development practices. Experience with code coverage tools, linting (Ruff, Pylint), type checking (mypy), and formatting (Black, isort).
+
+## DevOps & Deployment
+
+Experience with containerization using Docker, CI/CD pipelines (GitHub Actions, GitLab CI), and cloud platforms (AWS, GCP, Azure). Knowledge of deployment strategies, environment management, and infrastructure as code.
+
+## Database Management
+
+Proficient with both SQLite and NoSQL (Redis) databases. Experience with database design, optimization, migrations, and query performance tuning.
+
+## Asynchronous Programming
+
+Skilled in building concurrent and asynchronous applications using asyncio, multiprocessing, and threading. Experience with task queues (Celery, RQ) and background job processing.
+
+## API Integration & Web Scraping
+
+Experience integrating third-party APIs and building HTTP clients using httpx, and aiohttp. Knowledge of web scraping techniques with Beautiful Soup, Scrapy, and Selenium.
+
+## Version Control & Collaboration
+
+Proficient with Git workflows, code review processes, and collaborative development practices. Experience with branching strategies, pull requests, and maintaining clean commit histories.
+
+## Problem Solving & Algorithms
+
+Strong foundation in algorithms, data structures, and computational complexity. Ability to write efficient, scalable code and optimize performance bottlenecks.
+
+## Documentation & Communication
+
+Skilled at writing clear technical documentation, API specifications, and code comments. Experience with tools like Sphinx, MkDocs, and creating comprehensive README files.

@@ -65,8 +65,47 @@ class ChatSession:
         self.total_output_tokens: int = 0
         self.model_usage: Dict[str, int] = {}
 
+        # Load skills content
+        self.skills_content: str = self.load_skills()
+
+    def load_skills(self) -> str:
+        """Load all markdown files from the skills folder and combine their content."""
+        skills_dir = Path("skills")
+        if not skills_dir.exists():
+            return ""
+
+        combined_skills = ""
+        for skill_file in sorted(skills_dir.glob("*.md")):
+            try:
+                content = skill_file.read_text(encoding='utf-8')
+                combined_skills += f"\n\n--- Skill: {skill_file.name} ---\n{content}\n"
+            except Exception as e:
+                rprint(f"[yellow]Warning: Could not read {skill_file.name}: {e}[/yellow]")
+
+        return combined_skills
+
+    def list_skills(self):
+        """List all markdown files in the skills folder."""
+        skills_dir = Path("skills")
+        if not skills_dir.exists():
+            rprint("[yellow]Skills folder does not exist.[/yellow]")
+            return
+
+        skill_files = list(skills_dir.glob("*.md"))
+        if not skill_files:
+            rprint("[yellow]🖇️ No skill files found in the skills folder.[/yellow]")
+            return
+
+        rprint("[bold cyan]Available Skills:[/bold cyan]")
+        for skill_file in sorted(skill_files):
+            rprint(f"  • {skill_file.name}")
+
     def add_user_message(self, content: str):
         msg_content = [{"text": content}]
+
+        # Add skills content as context
+        if self.skills_content:
+            msg_content[0]["text"] = f"{self.skills_content}\n\n{content}"
 
         # Add attachments if any
         if self.attachments:
@@ -185,8 +224,10 @@ class ChatSession:
         rprint(Panel.fit(f"\n[bold cyan]{ascii_art}[/bold cyan]\n"
                         "\n[bold magenta]✨Welcome to PyClaudeCLI - a claude clone using aws bedrock✨[/bold magenta]\n"
                         f"[bold cyan]v{APP_VERSION}[/bold cyan]\n"
-                        "Commands: /model, /attach <path>, /copy, /code <n>, /clear, /quit",
+                        "Commands: /help, /model, /attach <path>, /copy, /code <n>, /skills, /clear, /quit",
                         border_style="magenta"))
+
+
 
         while True:
             try:
@@ -234,12 +275,16 @@ class ChatSession:
                         self.model_usage = {}
                         rprint("[green]Conversation and usage stats cleared.[/green]")
                         continue
+                    elif command == "/skills":
+                        self.list_skills()
+                        continue
                     elif command == "/help":
                          rprint(Panel("[bold]Available Commands:[/bold]\n"
                                       "/model - Switch AI Model\n"
                                       "/attach <path> - Attach file or directory contents\n"
                                       "/copy - Copy last response to clipboard\n"
                                       "/code <n> - Copy detected code block #n\n"
+                                      "/skills - List available skill files\n"
                                       "/clear - Clear conversation history\n"
                                       "/quit - Exit", title="Help"))
                          continue
