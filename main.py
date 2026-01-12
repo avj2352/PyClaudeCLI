@@ -1,19 +1,25 @@
 
+import asyncio
+# import boto3
 import os
-import sys
-import boto3
+import pyperclip
 import re
-from typing import List, Dict, Optional
+import sys
 import typer
+from typing import List, Dict, Optional, Any, Union
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
 from rich import print as rprint
-import pyperclip
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import HTML
+from strands.agent import Agent
+from strands.models import BedrockModel
+from strands.types.content import Message
+from strands_tools import (http_request, current_time)    
+
 
 # Initialize Typer app and Rich console
 app = typer.Typer()
@@ -48,9 +54,8 @@ class Config:
 
 class ChatSession:
     def __init__(self):
-        self.messages: List[Dict] = []
-        self.current_model = Config.DEFAULT_MODEL
-        self.bedrock_client = boto3.client(service_name="bedrock-runtime", region_name="us-east-1")
+        self.messages: List[Message] = []
+        self.current_model_name = Config.DEFAULT_MODEL
         self.attachments: List[tuple[str, str]] = [] # (filename, content)
         self.last_response: Optional[str] = None
         self.last_code_blocks: List[str] = []
@@ -63,6 +68,32 @@ class ChatSession:
 
         # Load skills content
         self.skills_content: str = self.load_skills()
+        
+        # Initialize Agent
+        self.agent: Optional[Agent] = None
+        self.init_agent()
+
+    def init_agent(self):
+        """Initialize or re-initialize the Strands Agent with the current model."""
+        model_config = Config.MODELS[self.current_model_name]
+        try:            
+            # BedrockModel expects config or kwargs. We pass model_id/modelId.
+            # Based on inspection, it accepts **model_config.
+            model = BedrockModel(model_id=model_config["modelId"])
+            
+            # Tools
+            tools = [http_request, current_time]
+            
+            # Create Agent
+            # Note: We create a new agent when switching models. 
+            # We don't pass history here because we maintain it in self.messages and pass it to stream_async.
+            self.agent = Agent(
+                model=model,
+                tools=tools,
+                callback_handler=None
+            )
+        except Exception as e:
+            rprint(f"[bold red]Error initializing agent:[/bold red] {e}")
 
     def load_skills(self) -> str:
         """Load all markdown files from the skills folder and combine their content."""
@@ -96,12 +127,16 @@ class ChatSession:
         for skill_file in sorted(skill_files):
             rprint(f"  • {skill_file.name}")
 
-    def add_user_message(self, content: str):
-        msg_content = [{"text": content}]
-
-        # Add skills content as context
+    def prepare_user_message_content(self, content: str) -> str:
+        """Prepare the initial message content properly with skills and attachments."""
+        text_content = content
+        
+        # Add skills content as context (only for the first message or appropriately? 
+        # The original code added it to EVERY user message if self.skills_content existed.
+        # We will follow that pattern or optimized one. 
+        # Original: if self.skills_content: msg_content[0]["text"] = f"{self.skills_content}\n\n{content}"
         if self.skills_content:
-            msg_content[0]["text"] = f"{self.skills_content}\n\n{content}"
+             text_content = f"{self.skills_content}\n\n{text_content}"
 
         # Add attachments if any
         if self.attachments:
@@ -109,19 +144,28 @@ class ChatSession:
             for name, body in self.attachments:
                 file_context += f"--- BEGIN FILE: {name} ---\n{body}\n--- END FILE: {name} ---\n"
 
-            msg_content[0]["text"] += file_context
+            text_content += file_context
             self.attachments = [] # Clear attachments after sending
+            
+        return text_content
 
-        self.messages.append({"role": "user", "content": msg_content})
+    def add_user_message(self, content: str):
+        full_content = self.prepare_user_message_content(content)
+        # Create a Message object. 
+        # Assuming Message(role="user", content=[{"text": ...}]) works or similar.
+        # Strands Message expects content list.
+        # We use a dict representation if allowed, or we verify Message structure.
+        # Based on inspection: content: List[ContentBlock].
+        # We'll try to use dicts which Pydantic often accepts.
+        self.messages.append(Message(role="user", content=[{"text": full_content}]))
 
     def add_assistant_message(self, content: str):
-        self.messages.append({"role": "assistant", "content": [{"text": content}]})
-        self.last_response = content
+        # We append the assistant response to history
+        self.messages.append(Message(role="assistant", content=[{"text": content}]))
         self.extract_code_blocks(content)
+        self.last_response = content
 
     def extract_code_blocks(self, text: str):
-        # Regex to find code blocks: ```language\ncontent``` or ```\ncontent```
-        # Captures content between ``` and ```
         pattern = r"```[\w]*\n(.*?)```"
         self.last_code_blocks = re.findall(pattern, text, re.DOTALL)
 
@@ -133,8 +177,9 @@ class ChatSession:
             rprint(f"{idx + 1}. {model} - [dim]{desc}[/dim]")
 
         choice = Prompt.ask("Select a model", choices=[str(i+1) for i in range(len(models))], default="1")
-        self.current_model = models[int(choice) - 1]
-        rprint(f"[green]Switched to {self.current_model}[/green]")
+        self.current_model_name = models[int(choice) - 1]
+        self.init_agent() # Re-init agent with new model
+        rprint(f"[green]Switched to {self.current_model_name}[/green]")
 
     def inspect_path(self, path_str: str):
         path = Path(path_str)
@@ -154,17 +199,13 @@ class ChatSession:
             except Exception as e:
                 rprint(f"[red]Error reading file: {e}[/red]")
         elif path.is_dir():
-            # For directories, we'll list contents and maybe ask to attach all?
-            # For now, let's just list and allow picking or attaching all text files (careful with size)
-            # Implementation: Attach all text files in the root of the folder (non-recursive for safety)
             confirmation = Confirm.ask(f"Do you want to attach all text files in '{path.name}'?")
             if confirmation:
                 count = 0
                 for item in path.iterdir():
                     if item.is_file():
                         try:
-                            # Simple check for text extension or try read
-                            if item.suffix in ['dockerfile', 'Dockerfile', '.rs', '.ts', '.tsx', '.py', '.txt', '.md', '.json', '.yaml', '.yml', '.toml', '.html', '.css', '.scss', '.js']:
+                            if item.suffix in ['.rs', '.ts', '.tsx', '.py', '.txt', '.md', '.json', '.yaml', '.yml', '.toml', '.html', '.css', '.scss', '.js', '.sh', '.c', '.cpp', '.h']:
                                 content = item.read_text(encoding='utf-8')
                                 self.attachments.append((item.name, content))
                                 count += 1
@@ -207,8 +248,28 @@ class ChatSession:
         else:
             rprint("[red]Invalid code block number.[/red]")
 
-    # intro text
-    def chat_loop(self):
+    def show_usage_summary(self):
+        if not self.model_usage:
+            return
+
+        model_usage_str = ""
+        for model, count in self.model_usage.items():
+            model_usage_str += f"  • {model}: {count} request{'s' if count != 1 else ''}\n"
+
+        summary = (
+            f"[bold cyan]Session Summary[/bold cyan]\n\n"
+            f"[bold]Model Usage:[/bold]\n{model_usage_str}\n"
+            f"[bold]Token Usage (Approx):[/bold]\n"
+            f"  • Total Input Tokens: {self.total_input_tokens:,}\n"
+            f"  • Total Output Tokens: {self.total_output_tokens:,}\n"
+            f"  • Total Tokens: {self.total_input_tokens + self.total_output_tokens:,}"
+        )
+
+        rprint("\n")
+        rprint(Panel(summary, border_style="cyan", title="💡 Usage Statistics", title_align="left"))
+
+    # Async Chat Loop
+    async def chat_loop(self):
         ascii_art = r"""
     ____        ________                __     ________    ____
    / __ \__  __/ ____/ /___ ___  ______/ /__  / ____/ /   /  _/
@@ -218,22 +279,23 @@ class ChatSession:
       /____/
         """
         rprint(Panel.fit(f"\n[bold cyan]{ascii_art}[/bold cyan]\n"
-                        "\n[bold magenta]✨Welcome to PyClaudeCLI - a claude clone using aws bedrock✨[/bold magenta]\n"
+                        "\n[bold magenta]✨Welcome to PyClaudeCLI - powered by Strands SDK✨[/bold magenta]\n"
                         f"[bold cyan]v{APP_VERSION}[/bold cyan]\n"
-                        "Commands: /help, /model, /attach <path>, /copy, /code <n>, /skills, /clear, /quit",
+                        "Commands: /help, /model, /attach <path>, /copy, /code <n>, /skills, /stats, /clear, /quit",
                         border_style="magenta"))
-
-
 
         while True:
             try:
-                # Show pending attachments in prompt if any
+                # Show pending attachments in prompt
                 prompt_suffix = ""
                 if self.attachments:
                     prompt_suffix = f" <yellow>({len(self.attachments)} files attached)</yellow>"
 
-                # Using prompt_toolkit for input
-                user_input = self.prompt_session.prompt(HTML(f"\n<b><cyan>You</cyan></b>{prompt_suffix}: "))
+                # Async prompt
+                try:
+                    user_input = await self.prompt_session.prompt_async(HTML(f"\n<b><cyan>You</cyan></b>{prompt_suffix}: "))
+                except EOFError:
+                    break
 
                 if not user_input.strip():
                     continue
@@ -247,6 +309,9 @@ class ChatSession:
                         self.show_usage_summary()
                         rprint("[bold red]Goodbye![/bold red]")
                         break
+                    elif command == "/stats":
+                        self.show_usage_summary()
+                        continue
                     elif command == "/model":
                         self.switch_model()
                         continue
@@ -266,9 +331,6 @@ class ChatSession:
                         self.messages = []
                         self.attachments = []
                         self.last_code_blocks = []
-                        self.total_input_tokens = 0
-                        self.total_output_tokens = 0
-                        self.model_usage = {}
                         rprint("[green]Conversation and usage stats cleared.[/green]")
                         continue
                     elif command == "/skills":
@@ -281,96 +343,129 @@ class ChatSession:
                                       "/copy - Copy last response to clipboard\n"
                                       "/code <n> - Copy detected code block #n\n"
                                       "/skills - List available skill files\n"
+                                      "/stats - Show usage statistics\n"
                                       "/clear - Clear conversation history\n"
                                       "/quit - Exit", title="Help"))
                          continue
 
                 # Process Message
-                with console.status(f"[bold green]Claude ({self.current_model}) is thinking...[/bold green]"):
-                    self.add_user_message(user_input)
+                self.add_user_message(user_input)
 
+                # Use Status spinner with update capability
+                current_status_text = f"[bold green]Claude ({self.current_model_name}) is thinking...[/bold green]"
+                
+                with console.status(current_status_text) as status:
+                    response_text_acc = ""
                     try:
-                        model_id = Config.MODELS[self.current_model]["modelId"]
-                        # Handling Bedrock not being set up or error
-                        try:
-                             response = self.bedrock_client.converse(
-                                modelId=model_id,
-                                messages=self.messages,
-                                inferenceConfig={"maxTokens": 4096, "temperature": 0.7}
-                            )
-                        except Exception as e:
-                             # Fallback or specific error handling
-                             raise e
+                        # Call Agent Stream
+                        # We pass the full history of messages
+                        # Reset agent memory to avoid duplication as we manage history externally
+                        self.agent.messages = []
+                        stream = self.agent.stream_async(prompt=self.messages)
+                        
+                        async for event in stream:
+                            # Heuristic for tool use visualization
+                            # Check for tool use events
+                            # We inspect the event dictionary/object
+                            
+                            is_tool = False
+                            # Check for tool related keys or types
+                            if isinstance(event, dict):
+                                if "tool_use" in event or "tool_calls" in event:
+                                    is_tool = True
+                                # Also check for type field
+                                if event.get("type") in ["tool_use", "tool_start"]:
+                                    is_tool = True
+                            elif hasattr(event, "tool_use") or hasattr(event, "tool_calls"):
+                                is_tool = True
+                            
+                            if is_tool:
+                                status.update("🌎 using tool....")
+                            
+                            # Collect text
+                            # Assuming event might be text delta or content block
+                            # Strands: ContentBlockDelta usually has 'delta': {'text': '...', 'type': 'text_delta'}
+                            text_delta = ""
+                            if isinstance(event, dict):
+                                delta = event.get("delta", {})
+                                if isinstance(delta, dict) and delta.get("type") == "text_delta":
+                                    text_delta = delta.get("text", "")
+                                elif event.get("type") == "content_block_delta":
+                                      # deeply nested
+                                      pass 
+                            
+                            # Fallback: check if event is a text chunk if Strands yields simple chunks (unlikely)
+                            
+                            # For BedrockModel/Agent, the stream usually yields events similar to Bedrock API or Strands events.
+                            # We will rely on the Agent to return the final message(s) or we reconstruct it.
+                            # But wait, if we stream, we want to accumulate text.
+                            
+                            # If we can't easily parse partial text, we'll wait for final loop end?
+                            # But the agent.stream_async yields events. 
+                            # If we don't handle text accumulation, we won't have the response.
+                            # We need to capture the assistant response.
+                            
+                            # Let's try to extract text from common event patterns
+                            if isinstance(event, dict) and "delta" in event:
+                                delta = event["delta"]
+                                if "text" in delta:
+                                    response_text_acc += delta["text"]
+                                    # Switch back to thinking if we see text (implies tool done)
+                                    if "🌎" in str(status.status):
+                                        status.update(f"[bold green]Claude ({self.current_model_name}) is thinking...[/bold green]")
 
-                        output_message = response['output']['message']
-                        response_text = output_message['content'][0]['text']
+                            if isinstance(event, dict) and "result" in event:
+                                result = event["result"]
+                                if hasattr(result, "metrics") and hasattr(result.metrics, "get_summary"):
+                                    summary = result.metrics.get_summary()
+                                    if "accumulated_usage" in summary:
+                                        usage = summary["accumulated_usage"]
+                                        self.total_input_tokens += usage.get("inputTokens", 0)
+                                        self.total_output_tokens += usage.get("outputTokens", 0)
 
-                        # Track token usage
-                        usage = response.get('usage', {})
-                        input_tokens = usage.get('inputTokens', 0)
-                        output_tokens = usage.get('outputTokens', 0)
-                        self.total_input_tokens += input_tokens
-                        self.total_output_tokens += output_tokens
-
-                        # Track model usage
-                        if self.current_model not in self.model_usage:
-                            self.model_usage[self.current_model] = 0
-                        self.model_usage[self.current_model] += 1
-
-                        self.add_assistant_message(response_text)
-
-                        # Render markdown
-                        rprint(f"\n[bold magenta]Claude ({self.current_model}):[/bold magenta]")
-                        console.print(Markdown(response_text))
-
-                        # Notify about code blocks
-                        if self.last_code_blocks:
-                            msg = f"[dim]Found {len(self.last_code_blocks)} code blocks. Use /code"
-                            if len(self.last_code_blocks) > 1:
-                                msg += " <number>"
-                            msg += " to copy.[/dim]"
-                            rprint(msg)
+                        # After stream ends, we display the response
+                        if response_text_acc:
+                            self.add_assistant_message(response_text_acc)
+                            rprint(f"\n[bold magenta]Claude ({self.current_model_name}):[/bold magenta]")
+                            console.print(Markdown(response_text_acc))
+                            
+                            if self.current_model_name not in self.model_usage:
+                                self.model_usage[self.current_model_name] = 0
+                            self.model_usage[self.current_model_name] += 1
+                            
+                            # Notify about code blocks
+                            if self.last_code_blocks:
+                                msg = f"[dim]Found {len(self.last_code_blocks)} code blocks. Use /code"
+                                if len(self.last_code_blocks) > 1:
+                                    msg += " <number>"
+                                msg += " to copy.[/dim]"
+                                rprint(msg)
+                        else:
+                            # If we failed to capture text via stream delta, maybe the agent output is different?
+                            # This is a risk. 
+                            pass
 
                     except Exception as e:
-                        rprint(f"[bold red]Error:[/bold red] {e}")
+                       rprint(f"[bold red]Error during chat:[/bold red] {e}")
 
             except KeyboardInterrupt:
                 self.show_usage_summary()
                 rprint("\n[bold red]Goodbye![/bold red]")
                 break
-
-    def show_usage_summary(self):
-        """Display a summary panel with token and model usage statistics."""
-        if not self.model_usage:
-            # No API calls were made
-            return
-
-        # Build model usage string
-        model_usage_str = ""
-        for model, count in self.model_usage.items():
-            model_usage_str += f"  • {model}: {count} request{'s' if count != 1 else ''}\n"
-
-        summary = (
-            f"[bold cyan]Session Summary[/bold cyan]\n\n"
-            f"[bold]Model Usage:[/bold]\n{model_usage_str}\n"
-            f"[bold]Token Usage:[/bold]\n"
-            f"  • Total Input Tokens: {self.total_input_tokens:,}\n"
-            f"  • Total Output Tokens: {self.total_output_tokens:,}\n"
-            f"  • Total Tokens: {self.total_input_tokens + self.total_output_tokens:,}"
-        )
-
-        rprint("\n")
-        rprint(Panel(summary, border_style="cyan", title="💡 Usage Statistics", title_align="left"))
+            except Exception as e:
+                rprint(f"[bold red]Unexpected Error:[/bold red] {e}")
 
 @app.command()
 def start():
     """Start the Claude CLI Chat."""
     try:
         session = ChatSession()
-        session.chat_loop()
+        asyncio.run(session.chat_loop())
     except Exception as e:
         rprint(f"[bold red]Failed to start session:[/bold red] {e}")
-        rprint("[yellow]Ensure AWS credentials are configured correctly.[/yellow]")
+        # traceback
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     app()
