@@ -1,6 +1,5 @@
 
 import asyncio
-# import boto3
 import os
 import pyperclip
 import re
@@ -24,7 +23,7 @@ from strands_tools import (http_request, current_time)
 # Initialize Typer app and Rich console
 app = typer.Typer()
 console = Console()
-APP_VERSION = "0.1.0"
+APP_VERSION = "1.1.0"
 
 # Configuration
 class Config:
@@ -33,6 +32,10 @@ class Config:
             "modelId": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
             "description": "High intelligence and speed"
         },
+        "opus-4.1": {
+            "modelId": "us.anthropic.claude-opus-4-1-20250805-v1:0",
+            "description": "Most capable model for complex tasks"
+        },
         "qwen3 30B": {
             "modelId": "qwen.qwen3-coder-30b-a3b-v1:0",
             "description": "Very fast response code assist"
@@ -40,10 +43,6 @@ class Config:
         "sonnet-4": {
             "modelId": "us.anthropic.claude-sonnet-4-20250514-v1:0",
             "description": "Cost optimized anthropic model"
-        },
-        "opus-4.1": {
-            "modelId": "us.anthropic.claude-opus-4-1-20250805-v1:0",
-            "description": "Most capable model for complex tasks"
         },
         "deepseek R1": {
             "modelId": "us.deepseek.r1-v1:0",

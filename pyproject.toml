@@ -5,7 +5,6 @@ description = "python cli claude clone app which uses aws bedrock foundational m
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "boto3>=1.42.19",
     "rich>=14.2.0",
     "typer>=0.21.0",
     "pyperclip>=1.8.2",
