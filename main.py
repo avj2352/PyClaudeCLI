@@ -9,15 +9,11 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
-# from rich.style import Style
-# from rich.live import Live
-# from rich.text import Text
 from rich import print as rprint
 import pyperclip
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import HTML
-# from prompt_toolkit.styles import Style as PromptStyle
 
 # Initialize Typer app and Rich console
 app = typer.Typer()

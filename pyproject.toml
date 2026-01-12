@@ -10,4 +10,6 @@ dependencies = [
     "typer>=0.21.0",
     "pyperclip>=1.8.2",
     "prompt_toolkit>=3.0.0",
+    "strands-agents>=1.21.0",
+    "strands-agents-tools>=0.2.19",
 ]
