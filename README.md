@@ -81,3 +81,12 @@ aws bedrock list-foundation-models
 # show in table format
 aws bedrock list-foundation-models --query 'modelSummaries[*].[modelId,modelName]' --output table
 ```
+## Important Links
+
+- [Strands Agent SDK](https://strandsagents.com/)
+- [AWS Agentcore samples Github](https://github.com/awslabs/amazon-bedrock-agentcore-samples)
+- [AWS Agentcore workshop - Youtube Playlist](https://www.youtube.com/watch?v=wzIQDPFQx30&list=PLhr1KZpdzukfZdp5SGgm2yBPglHNHn-Ig)
+- [Strands Agent - Documentation site](https://strandsagents.com/latest/documentation/docs/)
+- [Strands Agents SDK - Youtube video](https://www.youtube.com/watch?v=TD2ihEBkdkY)
+- [Strands Agents - Beginners Introduction](https://www.youtube.com/watch?v=j2wYT6jqXZY)
+- [Strands Agents - Web URL Fetch & Retrieve from KB](https://www.youtube.com/watch?v=C3tpzAwgvBA)
