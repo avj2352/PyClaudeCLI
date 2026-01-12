@@ -1,0 +1,849 @@
+# List of AWS CLI Commands
+
+## BEDROCK
+
+### List available foundation models
+aws bedrock list-foundation-models
+
+### Get model details
+aws bedrock get-foundation-model --model-identifier anthropic.claude-v2
+
+### List custom models
+aws bedrock list-custom-models
+
+### Get custom model details
+aws bedrock get-custom-model --model-identifier <model-arn>
+
+### Invoke a model (requires bedrock-runtime)
+aws bedrock-runtime invoke-model \
+    --model-id anthropic.claude-v2 \
+    --body '{"prompt": "Human: Hello\n\nAssistant:", "max_tokens_to_sample": 300}' \
+    --cli-binary-format raw-in-base64-out \
+    output.json
+
+### Invoke model with streaming
+aws bedrock-runtime invoke-model-with-response-stream \
+    --model-id anthropic.claude-v2 \
+    --body '{"prompt": "Human: Hello\n\nAssistant:", "max_tokens_to_sample": 300}' \
+    --cli-binary-format raw-in-base64-out \
+    output.json
+
+### Create model customization job
+aws bedrock create-model-customization-job \
+    --job-name my-custom-model \
+    --custom-model-name my-model \
+    --role-arn arn:aws:iam::123456789012:role/BedrockRole \
+    --base-model-identifier anthropic.claude-v2 \
+    --training-data-config s3Uri=s3://my-bucket/training-data/ \
+    --output-data-config s3Uri=s3://my-bucket/output/
+
+### List model customization jobs
+aws bedrock list-model-customization-jobs
+
+### Get customization job details
+aws bedrock get-model-customization-job --job-identifier <job-arn>
+
+### Stop customization job
+aws bedrock stop-model-customization-job --job-identifier <job-arn>
+
+### Create provisioned model throughput
+aws bedrock create-provisioned-model-throughput \
+    --model-units 1 \
+    --provisioned-model-name my-provisioned-model \
+    --model-id anthropic.claude-v2
+
+### List provisioned model throughput
+aws bedrock list-provisioned-model-throughputs
+
+### Delete provisioned model throughput
+aws bedrock delete-provisioned-model-throughput \
+    --provisioned-model-id <provisioned-model-id>
+
+---
+
+## IAM - roles & permissions
+
+### List all users
+aws iam list-users
+
+### Create a user
+aws iam create-user --user-name john-doe
+
+### Get user details
+aws iam get-user --user-name john-doe
+
+### Delete a user
+aws iam delete-user --user-name john-doe
+
+### Update user name
+aws iam update-user --user-name old-name --new-user-name new-name
+
+### List all groups
+aws iam list-groups
+
+### Create a group
+aws iam create-group --group-name developers
+
+### Add user to group
+aws iam add-user-to-group --user-name john-doe --group-name developers
+
+### Remove user from group
+aws iam remove-user-from-group --user-name john-doe --group-name developers
+
+### List users in a group
+aws iam get-group --group-name developers
+
+### Delete a group
+aws iam delete-group --group-name developers
+
+### List all roles
+aws iam list-roles
+
+### Create a role
+aws iam create-role \
+    --role-name MyRole \
+    --assume-role-policy-document file://trust-policy.json
+
+### Get role details
+aws iam get-role --role-name MyRole
+
+### Delete a role
+aws iam delete-role --role-name MyRole
+
+### Update role description
+aws iam update-role --role-name MyRole --description "Updated description"
+
+### List roles for a service
+aws iam list-roles --path-prefix /service-role/
+
+### List all policies
+aws iam list-policies
+
+### List customer-managed policies
+aws iam list-policies --scope Local
+
+### Create a policy
+aws iam create-policy \
+    --policy-name MyPolicy \
+    --policy-document file://policy.json
+
+### Get policy details
+aws iam get-policy --policy-arn arn:aws:iam::123456789012:policy/MyPolicy
+
+### Get policy version
+aws iam get-policy-version \
+    --policy-arn arn:aws:iam::123456789012:policy/MyPolicy \
+    --version-id v1
+
+### Delete a policy
+aws iam delete-policy --policy-arn arn:aws:iam::123456789012:policy/MyPolicy
+
+### List entities attached to a policy
+aws iam list-entities-for-policy \
+    --policy-arn arn:aws:iam::123456789012:policy/MyPolicy
+
+### Attach policy to user
+aws iam attach-user-policy \
+    --user-name john-doe \
+    --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess
+
+### Detach policy from user
+aws iam detach-user-policy \
+    --user-name john-doe \
+    --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess
+
+### Attach policy to group
+aws iam attach-group-policy \
+    --group-name developers \
+    --policy-arn arn:aws:iam::aws:policy/PowerUserAccess
+
+### Attach policy to role
+aws iam attach-role-policy \
+    --role-name MyRole \
+    --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+
+### List policies attached to user
+aws iam list-attached-user-policies --user-name john-doe
+
+### List policies attached to role
+aws iam list-attached-role-policies --role-name MyRole
+
+### Create access key for user
+aws iam create-access-key --user-name john-doe
+
+### List access keys for user
+aws iam list-access-keys --user-name john-doe
+
+### Deactivate access key
+aws iam update-access-key \
+    --user-name john-doe \
+    --access-key-id AKIAIOSFODNN7EXAMPLE \
+    --status Inactive
+
+### Delete access key
+aws iam delete-access-key \
+    --user-name john-doe \
+    --access-key-id AKIAIOSFODNN7EXAMPLE
+
+### Create login profile (console password)
+aws iam create-login-profile \
+    --user-name john-doe \
+    --password MyPassword123!
+
+### Enable MFA device
+aws iam enable-mfa-device \
+    --user-name john-doe \
+    --serial-number arn:aws:iam::123456789012:mfa/john-doe \
+    --authentication-code-1 123456 \
+    --authentication-code-2 789012
+
+### List MFA devices
+aws iam list-mfa-devices --user-name john-doe
+
+---
+
+## ECS - Tasks & Groups
+
+### List clusters
+aws ecs list-clusters
+
+### Create cluster
+aws ecs create-cluster --cluster-name my-cluster
+
+### Describe cluster
+aws ecs describe-clusters --clusters my-cluster
+
+### Delete cluster
+aws ecs delete-cluster --cluster my-cluster
+
+### Update cluster settings
+aws ecs update-cluster-settings \
+    --cluster my-cluster \
+    --settings name=containerInsights,value=enabled
+
+### List task definitions
+aws ecs list-task-definitions
+
+### Register task definition
+aws ecs register-task-definition --cli-input-json file://task-definition.json
+
+### Describe task definition
+aws ecs describe-task-definition --task-definition my-task:1
+
+### Deregister task definition
+aws ecs deregister-task-definition --task-definition my-task:1
+
+### List task definition families
+aws ecs list-task-definition-families
+
+### List services in a cluster
+aws ecs list-services --cluster my-cluster
+
+### Create service
+aws ecs create-service \
+    --cluster my-cluster \
+    --service-name my-service \
+    --task-definition my-task:1 \
+    --desired-count 2
+
+### Describe service
+aws ecs describe-services \
+    --cluster my-cluster \
+    --services my-service
+
+### Update service
+aws ecs update-service \
+    --cluster my-cluster \
+    --service my-service \
+    --desired-count 3
+
+### Update service task definition
+aws ecs update-service \
+    --cluster my-cluster \
+    --service my-service \
+    --task-definition my-task:2
+
+### Delete service
+aws ecs delete-service \
+    --cluster my-cluster \
+    --service my-service \
+    --force
+
+### List tasks in a cluster
+aws ecs list-tasks --cluster my-cluster
+
+### Run a task
+aws ecs run-task \
+    --cluster my-cluster \
+    --task-definition my-task:1 \
+    --count 1
+
+### Describe tasks
+aws ecs describe-tasks \
+    --cluster my-cluster \
+    --tasks <task-id>
+
+### Stop a task
+aws ecs stop-task \
+    --cluster my-cluster \
+    --task <task-id>
+
+### List tasks by service
+aws ecs list-tasks --cluster my-cluster --service-name my-service
+
+### List container instances
+aws ecs list-container-instances --cluster my-cluster
+
+### Describe container instances
+aws ecs describe-container-instances \
+    --cluster my-cluster \
+    --container-instances <instance-id>
+
+### Deregister container instance
+aws ecs deregister-container-instance \
+    --cluster my-cluster \
+    --container-instance <instance-id> \
+    --force
+
+### Update container instances state
+aws ecs update-container-instances-state \
+    --cluster my-cluster \
+    --container-instances <instance-id> \
+    --status DRAINING
+
+### List capacity providers
+aws ecs describe-capacity-providers
+
+### Create capacity provider
+aws ecs create-capacity-provider \
+    --name my-capacity-provider \
+    --auto-scaling-group-provider autoScalingGroupArn=<asg-arn>
+
+### Put cluster capacity providers
+aws ecs put-cluster-capacity-providers \
+    --cluster my-cluster \
+    --capacity-providers FARGATE FARGATE_SPOT \
+    --default-capacity-provider-strategy capacityProvider=FARGATE,weight=1
+
+---
+
+## EKS (Elastic Kubernetes Service) - Node Groups, Fargate, Add-ons, Access, Kubeconfig
+
+### List clusters
+aws eks list-clusters
+
+### Create cluster
+aws eks create-cluster \
+    --name my-cluster \
+    --role-arn arn:aws:iam::123456789012:role/EKSClusterRole \
+    --resources-vpc-config subnetIds=subnet-xxx,subnet-yyy,securityGroupIds=sg-xxx
+
+### Describe cluster
+aws eks describe-cluster --name my-cluster
+
+### Update cluster config
+aws eks update-cluster-config \
+    --name my-cluster \
+    --resources-vpc-config endpointPublicAccess=true,endpointPrivateAccess=true
+
+### Update cluster version
+aws eks update-cluster-version \
+    --name my-cluster \
+    --kubernetes-version 1.28
+
+### Delete cluster
+aws eks delete-cluster --name my-cluster
+
+### Get cluster endpoint and certificate
+aws eks describe-cluster --name my-cluster \
+    --query "cluster.{endpoint:endpoint,ca:certificateAuthority.data}" \
+    --output text
+
+### List node groups
+aws eks list-nodegroups --cluster-name my-cluster
+
+### Create node group
+aws eks create-nodegroup \
+    --cluster-name my-cluster \
+    --nodegroup-name my-nodes \
+    --scaling-config minSize=1,maxSize=3,desiredSize=2 \
+    --subnets subnet-xxx subnet-yyy \
+    --instance-types t3.medium \
+    --node-role arn:aws:iam::123456789012:role/EKSNodeRole
+
+### Describe node group
+aws eks describe-nodegroup \
+    --cluster-name my-cluster \
+    --nodegroup-name my-nodes
+
+### Update node group config
+aws eks update-nodegroup-config \
+    --cluster-name my-cluster \
+    --nodegroup-name my-nodes \
+    --scaling-config minSize=2,maxSize=5,desiredSize=3
+
+### Update node group version
+aws eks update-nodegroup-version \
+    --cluster-name my-cluster \
+    --nodegroup-name my-nodes
+
+### Delete node group
+aws eks delete-nodegroup \
+    --cluster-name my-cluster \
+    --nodegroup-name my-nodes
+
+### List Fargate profiles
+aws eks list-fargate-profiles --cluster-name my-cluster
+
+### Create Fargate profile
+aws eks create-fargate-profile \
+    --cluster-name my-cluster \
+    --fargate-profile-name my-profile \
+    --pod-execution-role-arn arn:aws:iam::123456789012:role/EKSFargateRole \
+    --subnets subnet-xxx subnet-yyy \
+    --selectors namespace=default
+
+### Describe Fargate profile
+aws eks describe-fargate-profile \
+    --cluster-name my-cluster \
+    --fargate-profile-name my-profile
+
+### Delete Fargate profile
+aws eks delete-fargate-profile \
+    --cluster-name my-cluster \
+    --fargate-profile-name my-profile
+
+### List add-ons
+aws eks list-addons --cluster-name my-cluster
+
+### Describe add-on versions
+aws eks describe-addon-versions --addon-name vpc-cni
+
+### Create add-on
+aws eks create-addon \
+    --cluster-name my-cluster \
+    --addon-name vpc-cni \
+    --addon-version v1.12.0-eksbuild.1
+
+### Describe add-on
+aws eks describe-addon \
+    --cluster-name my-cluster \
+    --addon-name vpc-cni
+
+### Update add-on
+aws eks update-addon \
+    --cluster-name my-cluster \
+    --addon-name vpc-cni \
+    --addon-version v1.12.1-eksbuild.1
+
+### Delete add-on
+aws eks delete-addon \
+    --cluster-name my-cluster \
+    --addon-name vpc-cni
+
+### Create access entry
+aws eks create-access-entry \
+    --cluster-name my-cluster \
+    --principal-arn arn:aws:iam::123456789012:role/MyRole
+
+### List access entries
+aws eks list-access-entries --cluster-name my-cluster
+
+### Describe access entry
+aws eks describe-access-entry \
+    --cluster-name my-cluster \
+    --principal-arn arn:aws:iam::123456789012:role/MyRole
+
+### Associate access policy
+aws eks associate-access-policy \
+    --cluster-name my-cluster \
+    --principal-arn arn:aws:iam::123456789012:role/MyRole \
+    --access-scope type=cluster \
+    --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
+
+### Delete access entry
+aws eks delete-access-entry \
+    --cluster-name my-cluster \
+    --principal-arn arn:aws:iam::123456789012:role/MyRole
+
+### Update kubeconfig for cluster access
+aws eks update-kubeconfig --name my-cluster
+
+### Update kubeconfig with specific region
+aws eks update-kubeconfig --name my-cluster --region us-west-2
+
+### Update kubeconfig with role ARN
+aws eks update-kubeconfig \
+    --name my-cluster \
+    --role-arn arn:aws:iam::123456789012:role/MyRole
+
+### Update kubeconfig with alias
+aws eks update-kubeconfig --name my-cluster --alias my-cluster-alias
+
+### Create OIDC identity provider for service accounts
+aws eks describe-cluster --name my-cluster \
+    --query "cluster.identity.oidc.issuer" \
+    --output text
+
+### Associate OIDC provider (get OIDC ID first)
+aws iam create-open-id-connect-provider \
+    --url https://oidc.eks.us-west-2.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE \
+    --client-id-list sts.amazonaws.com \
+    --thumbprint-list 9e99a48a9960b14926bb7f3b02e22da2b0ab7280
+
+---
+
+## S3 (Simple Storage Service)
+
+### List all buckets
+aws s3 ls
+
+### Create bucket
+aws s3 mb s3://my-bucket
+
+### Create bucket in specific region
+aws s3 mb s3://my-bucket --region us-west-2
+
+### Remove empty bucket
+aws s3 rb s3://my-bucket
+
+### Remove bucket and all contents
+aws s3 rb s3://my-bucket --force
+
+### List bucket contents
+aws s3 ls s3://my-bucket
+
+### List with recursive and human-readable sizes
+aws s3 ls s3://my-bucket --recursive --human-readable --summarize
+
+### Upload file
+aws s3 cp myfile.txt s3://my-bucket/
+
+### Upload file to specific path
+aws s3 cp myfile.txt s3://my-bucket/path/to/file.txt
+
+### Upload directory recursively
+aws s3 cp mydir/ s3://my-bucket/mydir/ --recursive
+
+### Download file
+aws s3 cp s3://my-bucket/myfile.txt ./
+
+### Download directory
+aws s3 cp s3://my-bucket/mydir/ ./mydir/ --recursive
+
+### Move file
+aws s3 mv s3://my-bucket/old.txt s3://my-bucket/new.txt
+
+### Delete file
+aws s3 rm s3://my-bucket/myfile.txt
+
+### Delete all files in prefix
+aws s3 rm s3://my-bucket/mydir/ --recursive
+
+### Sync directory to S3
+aws s3 sync ./local-dir s3://my-bucket/remote-dir
+
+### Sync S3 to local with delete
+aws s3 sync s3://my-bucket/remote-dir ./local-dir --delete
+
+### Copy with storage class
+aws s3 cp myfile.txt s3://my-bucket/ --storage-class GLACIER
+
+### Copy with server-side encryption
+aws s3 cp myfile.txt s3://my-bucket/ --sse AES256
+
+### Copy with metadata
+aws s3 cp myfile.txt s3://my-bucket/ --metadata key1=value1,key2=value2
+
+### Copy excluding files
+aws s3 sync ./dir s3://my-bucket/ --exclude "*.tmp" --exclude ".git/*"
+
+### Copy including only specific files
+aws s3 sync ./dir s3://my-bucket/ --exclude "*" --include "*.jpg"
+
+### Copy with ACL
+aws s3 cp myfile.txt s3://my-bucket/ --acl public-read
+
+### Get bucket location
+aws s3api get-bucket-location --bucket my-bucket
+
+### List buckets with details
+aws s3api list-buckets
+
+### Get bucket versioning status
+aws s3api get-bucket-versioning --bucket my-bucket
+
+### Enable versioning
+aws s3api put-bucket-versioning \
+    --bucket my-bucket \
+    --versioning-configuration Status=Enabled
+
+### Get bucket encryption
+aws s3api get-bucket-encryption --bucket my-bucket
+
+### Put bucket encryption
+aws s3api put-bucket-encryption \
+    --bucket my-bucket \
+    --server-side-encryption-configuration \
+    '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+
+### Get bucket policy
+aws s3api get-bucket-policy --bucket my-bucket
+
+### Put bucket policy
+aws s3api put-bucket-policy \
+    --bucket my-bucket \
+    --policy file://policy.json
+
+### Delete bucket policy
+aws s3api delete-bucket-policy --bucket my-bucket
+
+### List objects
+aws s3api list-objects-v2 --bucket my-bucket
+
+### List objects with prefix
+aws s3api list-objects-v2 --bucket my-bucket --prefix mydir/
+
+### Get object metadata
+aws s3api head-object --bucket my-bucket --key myfile.txt
+
+### Get object
+aws s3api get-object --bucket my-bucket --key myfile.txt output.txt
+
+### Put object
+aws s3api put-object --bucket my-bucket --key myfile.txt --body myfile.txt
+
+### Copy object
+aws s3api copy-object \
+    --bucket my-bucket \
+    --copy-source my-bucket/source.txt \
+    --key destination.txt
+
+### Delete object
+aws s3api delete-object --bucket my-bucket --key myfile.txt
+
+### Delete multiple objects
+aws s3api delete-objects \
+    --bucket my-bucket \
+    --delete file://delete.json
+
+### Restore from Glacier
+aws s3api restore-object \
+    --bucket my-bucket \
+    --key myfile.txt \
+    --restore-request Days=7
+
+### Generate presigned URL (default 1 hour)
+aws s3 presign s3://my-bucket/myfile.txt
+
+### Generate presigned URL with custom expiration (in seconds)
+aws s3 presign s3://my-bucket/myfile.txt --expires-in 3600
+
+### Get lifecycle configuration
+aws s3api get-bucket-lifecycle-configuration --bucket my-bucket
+
+### Put lifecycle configuration
+aws s3api put-bucket-lifecycle-configuration \
+    --bucket my-bucket \
+    --lifecycle-configuration file://lifecycle.json
+
+### Get replication configuration
+aws s3api get-bucket-replication --bucket my-bucket
+
+### Put replication configuration
+aws s3api put-bucket-replication \
+    --bucket my-bucket \
+    --replication-configuration file://replication.json
+
+---
+
+## Lambda (Functions)
+
+### List functions
+aws lambda list-functions
+
+### Create function
+aws lambda create-function \
+    --function-name my-function \
+    --runtime python3.11 \
+    --role arn:aws:iam::123456789012:role/lambda-role \
+    --handler lambda_function.lambda_handler \
+    --zip-file fileb://function.zip
+
+### Get function configuration
+aws lambda get-function --function-name my-function
+
+### Get function code location
+aws lambda get-function \
+    --function-name my-function \
+    --query 'Code.Location'
+
+### Update function code
+aws lambda update-function-code \
+    --function-name my-function \
+    --zip-file fileb://function.zip
+
+### Update function configuration
+aws lambda update-function-configuration \
+    --function-name my-function \
+    --timeout 30 \
+    --memory-size 512
+
+### Update environment variables
+aws lambda update-function-configuration \
+    --function-name my-function \
+    --environment Variables={KEY1=value1,KEY2=value2}
+
+### Delete function
+aws lambda delete-function --function-name my-function
+
+### Invoke function synchronously
+aws lambda invoke \
+    --function-name my-function \
+    --payload '{"key": "value"}' \
+    response.json
+
+### Invoke function asynchronously
+aws lambda invoke \
+    --function-name my-function \
+    --invocation-type Event \
+    --payload '{"key": "value"}' \
+    response.json
+
+### Invoke with log output
+aws lambda invoke \
+    --function-name my-function \
+    --log-type Tail \
+    --payload '{"key": "value"}' \
+    response.json \
+    --query 'LogResult' \
+    --output text | base64 -d
+
+### Publish new version
+aws lambda publish-version --function-name my-function
+
+### List versions
+aws lambda list-versions-by-function --function-name my-function
+
+### Create alias
+aws lambda create-alias \
+    --function-name my-function \
+    --name prod \
+    --function-version 1
+
+### Update alias
+aws lambda update-alias \
+    --function-name my-function \
+    --name prod \
+    --function-version 2
+
+### Get alias
+aws lambda get-alias \
+    --function-name my-function \
+    --name prod
+
+### List aliases
+aws lambda list-aliases --function-name my-function
+
+### Delete alias
+aws lambda delete-alias \
+    --function-name my-function \
+    --name prod
+
+### Create event source mapping (SQS)
+aws lambda create-event-source-mapping \
+    --function-name my-function \
+    --event-source-arn arn:aws:sqs:us-east-1:123456789012:my-queue \
+    --batch-size 10
+
+### Create event source mapping (DynamoDB Stream)
+aws lambda create-event-source-mapping \
+    --function-name my-function \
+    --event-source-arn arn:aws:dynamodb:us-east-1:123456789012:table/my-table/stream/... \
+    --starting-position LATEST
+
+### List event source mappings
+aws lambda list-event-source-mappings --function-name my-function
+
+### Get event source mapping
+aws lambda get-event-source-mapping --uuid <mapping-uuid>
+
+### Update event source mapping
+aws lambda update-event-source-mapping \
+    --uuid <mapping-uuid> \
+    --batch-size 20
+
+### Delete event source mapping
+aws lambda delete-event-source-mapping --uuid <mapping-uuid>
+
+### Publish layer version
+aws lambda publish-layer-version \
+    --layer-name my-layer \
+    --description "My Lambda Layer" \
+    --zip-file fileb://layer.zip \
+    --compatible-runtimes python3.11
+
+### List layers
+aws lambda list-layers
+
+### List layer versions
+aws lambda list-layer-versions --layer-name my-layer
+
+### Get layer version
+aws lambda get-layer-version \
+    --layer-name my-layer \
+    --version-number 1
+
+### Delete layer version
+aws lambda delete-layer-version \
+    --layer-name my-layer \
+    --version-number 1
+
+### Add layer to function
+aws lambda update-function-configuration \
+    --function-name my-function \
+    --layers arn:aws:lambda:us-east-1:123456789012:layer:my-layer:1
+
+### Add permission to function
+aws lambda add-permission \
+    --function-name my-function \
+    --statement-id s3-invoke \
+    --action lambda:InvokeFunction \
+    --principal s3.amazonaws.com \
+    --source-arn arn:aws:s3:::my-bucket
+
+### Get function policy
+aws lambda get-policy --function-name my-function
+
+### Remove permission
+aws lambda remove-permission \
+    --function-name my-function \
+    --statement-id s3-invoke
+
+### Get function concurrency
+aws lambda get-function-concurrency --function-name my-function
+
+### Put reserved concurrent executions
+aws lambda put-function-concurrency \
+    --function-name my-function \
+    --reserved-concurrent-executions 100
+
+### Delete function concurrency (use account default)
+aws lambda delete-function-concurrency --function-name my-function
+
+### Get account settings
+aws lambda get-account-settings
+
+### Tag function
+aws lambda tag-resource \
+    --resource arn:aws:lambda:us-east-1:123456789012:function:my-function \
+    --tags Environment=prod,Team=backend
+
+### List tags
+aws lambda list-tags \
+    --resource arn:aws:lambda:us-east-1:123456789012:function:my-function
+
+### Untag function
+aws lambda untag-resource \
+    --resource arn:aws:lambda:us-east-1:123456789012:function:my-function \
+    --tag-keys Environment Team

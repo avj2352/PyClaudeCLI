@@ -12,3 +12,4 @@ venv/
 
 # ignore files
 Makefile
+.DS_Store

@@ -1,0 +1,299 @@
+# kubectl Commands Reference
+
+Cluster Information
+
+# Get cluster information and status:
+- kubectl cluster-info
+- kubectl version
+- kubectl api-resources
+- kubectl api-versions
+- kubectl config view
+- kubectl config get-contexts
+- kubectl config use-context <context-name>
+
+# Resource Management - Pods
+
+# List pods
+- kubectl get pods
+- kubectl get pods -n <namespace>
+- kubectl get pods --all-namespaces
+- kubectl get pods -o wide
+- kubectl get pods --show-labels
+
+# Describe pod
+- kubectl describe pod <pod-name>
+
+# Create/Delete pod
+- kubectl run <pod-name> --image=<image-name>
+- kubectl delete pod <pod-name>
+
+# Pod logs
+- kubectl logs <pod-name>
+- kubectl logs <pod-name> -c <container-name>
+- kubectl logs <pod-name> --follow
+- kubectl logs <pod-name> --previous
+
+# Execute commands in pod
+- kubectl exec <pod-name> -- <command>
+- kubectl exec -it <pod-name> -- /bin/bash
+- kubectl exec -it <pod-name> -c <container-name> -- /bin/sh
+
+# Port forwarding
+- kubectl port-forward <pod-name> <local-port>:<pod-port>
+
+# Copy files
+- kubectl cp <pod-name>:<path> <local-path>
+- kubectl cp <local-path> <pod-name>:<path>
+
+# Deployments
+
+# List deployments
+- kubectl get deployments
+- kubectl get deploy
+
+# Create deployment
+- kubectl create deployment <name> --image=<image>
+
+# Describe deployment
+- kubectl describe deployment <name>
+
+# Scale deployment
+- kubectl scale deployment <name> --replicas=<count>
+
+# Update deployment image
+- kubectl set image deployment/<name> <container>=<image>
+
+# Rollout status and history
+- kubectl rollout status deployment/<name>
+- kubectl rollout history deployment/<name>
+- kubectl rollout undo deployment/<name>
+- kubectl rollout restart deployment/<name>
+
+# Delete deployment
+- kubectl delete deployment <name>
+Services
+
+# List services
+- kubectl get services
+- kubectl get svc
+
+# Create service
+- kubectl expose deployment <name> --port=<port> --target-port=<target-port>
+- kubectl create service clusterip <name> --tcp=<port>:<target-port>
+
+# Describe service
+- kubectl describe service <name>
+
+# Delete service
+- kubectl delete service <name>
+ConfigMaps and Secrets
+
+# ConfigMaps
+- kubectl get configmaps
+- kubectl create configmap <name> --from-literal=<key>=<value>
+- kubectl create configmap <name> --from-file=<path>
+- kubectl describe configmap <name>
+- kubectl delete configmap <name>
+
+# Secrets
+- kubectl get secrets
+- kubectl create secret generic <name> --from-literal=<key>=<value>
+- kubectl create secret generic <name> --from-file=<path>
+- kubectl describe secret <name>
+- kubectl delete secret <name>
+Namespaces
+
+# List namespaces
+- kubectl get namespaces
+- kubectl get ns
+
+# Create namespace
+- kubectl create namespace <name>
+
+# Delete namespace
+- kubectl delete namespace <name>
+
+# Set default namespace
+- kubectl config set-context --current --namespace=<name>
+Resource Inspection
+
+# Get resources
+- kubectl get <resource>
+- kubectl get <resource> -n <namespace>
+- kubectl get <resource> --all-namespaces
+- kubectl get all
+
+# Output formats
+- kubectl get <resource> -o yaml
+- kubectl get <resource> -o json
+- kubectl get <resource> -o wide
+- kubectl get <resource> -o jsonpath='{.items[*].metadata.name}'
+
+# Describe resources
+- kubectl describe <resource> <name>
+
+# Watch resources
+- kubectl get <resource> --watch
+- kubectl get <resource> -w
+Resource Creation and Modification
+
+# Apply/Create from file
+- kubectl apply -f <file.yaml>
+- kubectl apply -f <directory>/
+- kubectl create -f <file.yaml>
+
+# Delete from file
+- kubectl delete -f <file.yaml>
+
+# Edit resource
+- kubectl edit <resource> <name>
+
+# Patch resource
+- kubectl patch <resource> <name> -p '<patch>'
+
+# Replace resource
+- kubectl replace -f <file.yaml>
+- kubectl replace --force -f <file.yaml>
+Labels and Annotations
+
+# Show labels
+- kubectl get <resource> --show-labels
+
+# Label resources
+- kubectl label <resource> <name> <key>=<value>
+- kubectl label <resource> <name> <key>-  # Remove label
+
+# Select by label
+- kubectl get <resource> -l <key>=<value>
+- kubectl get <resource> --selector=<key>=<value>
+
+# Annotate resources
+- kubectl annotate <resource> <name> <key>=<value>
+- kubectl annotate <resource> <name> <key>-  # Remove annotation
+
+# Debugging and Troubleshooting
+
+# Events
+- kubectl get events
+- kubectl get events -n <namespace>
+- kubectl get events --sort-by='.lastTimestamp'
+
+# Resource usage
+- kubectl top nodes
+- kubectl top pods
+- kubectl top pods -n <namespace>
+
+# Debug pod
+- kubectl debug <pod-name> -it --image=<debug-image>
+- kubectl debug node/<node-name> -it --image=<debug-image>
+
+# Drain and cordon nodes
+- kubectl drain <node-name>
+- kubectl cordon <node-name>
+- kubectl uncordon <node-name>
+Contexts and Configuration
+
+# Contexts
+- kubectl config current-context
+- kubectl config get-contexts
+- kubectl config use-context <context>
+- kubectl config delete-context <context>
+
+# Set namespace
+- kubectl config set-context --current --namespace=<namespace>
+
+# Cluster management
+- kubectl config set-cluster <cluster> --server=<server>
+- kubectl config set-credentials <user> --token=<token>
+- kubectl config set-context <context> --cluster=<cluster> --user=<user>
+
+# Advanced Operations
+
+# Autoscaling
+- kubectl autoscale deployment <name> --min=<min> --max=<max> --cpu-percent=<percent>
+- kubectl get hpa
+
+# Jobs and CronJobs
+- kubectl create job <name> --image=<image>
+- kubectl create cronjob <name> --image=<image> --schedule="<cron-schedule>"
+- kubectl get jobs
+- kubectl get cronjobs
+
+# StatefulSets
+- kubectl get statefulsets
+- kubectl scale statefulset <name> --replicas=<count>
+
+# DaemonSets
+- kubectl get daemonsets
+
+# Ingress
+- kubectl get ingress
+- kubectl describe ingress <name>
+
+# Persistent Volumes
+- kubectl get pv
+- kubectl get pvc
+- kubectl describe pv <name>
+- kubectl describe pvc <name>
+
+# Service Accounts
+- kubectl get serviceaccounts
+- kubectl create serviceaccount <name>
+
+# RBAC
+- kubectl get roles
+- kubectl get rolebindings
+- kubectl get clusterroles
+- kubectl get clusterrolebindings
+Output and Formatting
+
+# JSON path queries
+- kubectl get pods -o jsonpath='{.items[*].metadata.name}'
+- kubectl get pods -o jsonpath='{.items[*].status.podIP}'
+
+# Custom columns
+- kubectl get pods -o custom-columns=NAME:.metadata.name,STATUS:.status.phase
+
+# Sorting
+- kubectl get pods --sort-by='.status.startTime'
+- kubectl get pods --sort-by='.metadata.name'
+
+# Field selectors
+- kubectl get pods --field-selector status.phase=Running
+- kubectl get pods --field-selector metadata.namespace=default
+Useful Shortcuts
+
+# Resource short names
+po    = pods
+deploy = deployments
+svc   = services
+ns    = namespaces
+cm    = configmaps
+ds    = daemonsets
+rs    = replicasets
+sts   = statefulsets
+pv    = persistentvolumes
+pvc   = persistentvolumeclaims
+
+# Quick operations
+- kubectl run tmp --image=busybox -it --rm -- /bin/sh  # Temporary pod
+- kubectl get all -A  # All resources in all namespaces
+- kubectl delete all --all  # Delete all resources in namespace (use with caution!)
+Completion and Help
+
+# Help
+- kubectl --help
+- kubectl <command> --help
+
+# Bash completion
+- source <(kubectl completion bash)
+- echo "source <(kubectl completion bash)" >> ~/.bashrc
+
+# Zsh completion
+- source <(kubectl completion zsh)
+- echo "source <(kubectl completion zsh)" >> ~/.zshrc
+
+# Explain resources
+- kubectl explain pods
+- kubectl explain pods.spec
+- kubectl explain pods.spec.containers
