@@ -1,6 +1,8 @@
 
 import asyncio
 import os
+import subprocess
+import platform
 import pyperclip
 import re
 import sys
@@ -23,7 +25,16 @@ from strands_tools import (http_request, current_time)
 # Initialize Typer app and Rich console
 app = typer.Typer()
 console = Console()
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.2"
+APP_NAME = r"""
+    ____        ________                __     ________    ____
+   / __ \__  __/ ____/ /___ ___  ______/ /__  / ____/ /   /  _/
+  / /_/ / / / / /   / / __ `/ / / / __  / _ \/ /   / /    / /
+ / ____/ /_/ / /___/ / /_/ / /_/ / /_/ /  __/ /___/ /____/ /
+/_/    \__, /\____/_/\__,_/\__,_/\__,_/\___/\____/_____/___/
+      /____/
+"""
+
 
 # Configuration
 class Config:
@@ -214,6 +225,20 @@ class ChatSession:
             else:
                  rprint("[yellow]Operation cancelled.[/yellow]")
 
+    # clear screen
+    def clear_screen(self):
+        """Clear session and terminal"""
+        subprocess.run('cls' if platform.system() == 'Windows' else 'clear', shell=True)
+        ascii_art = APP_NAME
+        rprint(Panel.fit(f"\n[bold cyan]{ascii_art}[/bold cyan]\n"
+            "\n[bold magenta]✨Welcome to PyClaudeCLI - powered by Strands SDK✨[/bold magenta]\n"
+            f"[bold cyan]v{APP_VERSION}[/bold cyan]\n"
+            "Commands: /help, /model, /attach <path>, /copy, /code <n>, /skills, /stats, /clear, /quit",
+            border_style="magenta")
+        )
+
+        
+
     def copy_last_response(self):
         if self.last_response:
             pyperclip.copy(self.last_response)
@@ -269,19 +294,13 @@ class ChatSession:
 
     # Async Chat Loop
     async def chat_loop(self):
-        ascii_art = r"""
-    ____        ________                __     ________    ____
-   / __ \__  __/ ____/ /___ ___  ______/ /__  / ____/ /   /  _/
-  / /_/ / / / / /   / / __ `/ / / / __  / _ \/ /   / /    / /
- / ____/ /_/ / /___/ / /_/ / /_/ / /_/ /  __/ /___/ /____/ /
-/_/    \__, /\____/_/\__,_/\__,_/\__,_/\___/\____/_____/___/
-      /____/
-        """
+        ascii_art = APP_NAME
         rprint(Panel.fit(f"\n[bold cyan]{ascii_art}[/bold cyan]\n"
-                        "\n[bold magenta]✨Welcome to PyClaudeCLI - powered by Strands SDK✨[/bold magenta]\n"
-                        f"[bold cyan]v{APP_VERSION}[/bold cyan]\n"
-                        "Commands: /help, /model, /attach <path>, /copy, /code <n>, /skills, /stats, /clear, /quit",
-                        border_style="magenta"))
+            "\n[bold magenta]✨Welcome to PyClaudeCLI - powered by Strands SDK✨[/bold magenta]\n"
+            f"[bold cyan]v{APP_VERSION}[/bold cyan]\n"
+            "Commands: /help, /model, /attach <path>, /copy, /code <n>, /skills, /stats, /clear, /quit",
+            border_style="magenta")
+        )
 
         while True:
             try:
@@ -330,6 +349,7 @@ class ChatSession:
                         self.messages = []
                         self.attachments = []
                         self.last_code_blocks = []
+                        self.clear_screen()
                         rprint("[green]Conversation and usage stats cleared.[/green]")
                         continue
                     elif command == "/skills":
