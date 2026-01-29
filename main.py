@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
+from rich.text import Text
 from rich import print as rprint
 from pathlib import Path
 from prompt_toolkit import PromptSession
@@ -25,7 +26,7 @@ from strands_tools import (http_request, current_time)
 # Initialize Typer app and Rich console
 app = typer.Typer()
 console = Console()
-APP_VERSION = "1.1.2"
+APP_VERSION = "1.1.3"
 APP_NAME = r"""
     ____        ________                __     ________    ____
    / __ \__  __/ ____/ /___ ___  ______/ /__  / ____/ /   /  _/
@@ -178,6 +179,24 @@ class ChatSession:
     def extract_code_blocks(self, text: str):
         pattern = r"```[\w]*\n(.*?)```"
         self.last_code_blocks = re.findall(pattern, text, re.DOTALL)
+
+
+    # show code block numbers
+    def render_markdown_with_code_numbers(self, markdown_text: str):
+        """render markdown & add code block numbers below each code block"""
+        # split code blocks from markdown text
+        parts = re.split(r'(```[\w]*\n.*?```)', markdown_text, flags=re.DOTALL)
+        code_block_num = 0
+        for part in parts:
+            if part.startswith('```'):
+                # confirm code block
+                code_block_num += 1
+                console.print(Markdown(part))
+                # add code block number indicator below
+                console.print(Text(f"[Code block {code_block_num}]\n", style="dim italic cyan"))
+            elif part.strip():
+                # regular markdown text
+                console.print(Markdown(part))
 
     def switch_model(self):
         models = list(Config.MODELS.keys())
@@ -446,7 +465,7 @@ class ChatSession:
                         if response_text_acc:
                             self.add_assistant_message(response_text_acc)
                             rprint(f"\n[bold magenta]Claude ({self.current_model_name}):[/bold magenta]")
-                            console.print(Markdown(response_text_acc))
+                            self.render_markdown_with_code_numbers(response_text_acc)
                             
                             if self.current_model_name not in self.model_usage:
                                 self.model_usage[self.current_model_name] = 0
