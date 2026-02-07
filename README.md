@@ -90,3 +90,36 @@ aws bedrock list-foundation-models --query 'modelSummaries[*].[modelId,modelName
 - [Strands Agents SDK - Youtube video](https://www.youtube.com/watch?v=TD2ihEBkdkY)
 - [Strands Agents - Beginners Introduction](https://www.youtube.com/watch?v=j2wYT6jqXZY)
 - [Strands Agents - Web URL Fetch & Retrieve from KB](https://www.youtube.com/watch?v=C3tpzAwgvBA)
+
+## Test Bedrock Model
+
+To test a bedrock model, you can use the below code to call converse api
+
+```bash
+
+# aws cli to call converse api
+aws bedrock-runtime converse \
+     --model-id anthropic.claude-3-5-sonnet-20241022-v2:0 \
+     --messages '[
+         {
+             "role": "user",
+             "content": [{"text": "Write a poem about the ocean"}]
+         }
+     ]' \
+     --system '[{"text": "You are a helpful assistant that writes creative poetry."}]' \
+     --inference-config '{
+         "maxTokens": 2000,
+         "temperature": 0.7,
+         "topP": 0.9
+     }' \
+     --region us-east-1
+```
+
+Use the following command to list all available models by Anthropic
+
+```bash
+# List only models you have access to
+aws bedrock list-foundation-models \
+    --by-provider anthropic \
+    --region us-east-1
+```

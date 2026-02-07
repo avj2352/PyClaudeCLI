@@ -44,6 +44,11 @@ class Config:
             "modelId": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
             "description": "High intelligence and speed"
         },
+          "opus-4.6": {
+              "modelId": "us.anthropic.claude-opus-4-6-v1",
+              "description": "Newest model release by anthropic - February 5th 2026"
+ 
+        },
         "opus-4.1": {
             "modelId": "us.anthropic.claude-opus-4-1-20250805-v1:0",
             "description": "Most capable model for complex tasks"
