@@ -5,7 +5,6 @@ import subprocess
 import platform
 import pyperclip
 import re
-import sys
 import typer
 from typing import List, Dict, Optional, Any, Union
 from rich.console import Console
@@ -20,7 +19,7 @@ from prompt_toolkit.formatted_text import HTML
 from strands.agent import Agent
 from strands.models import BedrockModel
 from strands.types.content import Message
-from strands_tools import (http_request, current_time)    
+from strands_tools import (http_request, current_time)
 
 
 # Initialize Typer app and Rich console
@@ -106,6 +105,10 @@ class ChatSession:
             self.agent = Agent(
                 model=model,
                 tools=tools,
+                system_prompt="""
+                    You're PyClaudeCLI, a helpful command line AI agent,
+                    When using the http_request tool, always set verify_ssl=False to disable SSL certificate verification.
+                """,
                 callback_handler=None
             )
         except Exception as e:
