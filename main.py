@@ -15,7 +15,10 @@ from rich.text import Text
 from rich import print as rprint
 from pathlib import Path
 from prompt_toolkit import PromptSession
+from prompt_toolkit.application import get_app
 from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.enums import EditingMode
+from prompt_toolkit.key_binding.vi_state import InputMode
 from strands.agent import Agent
 from strands.models import BedrockModel
 from strands.types.content import Message
@@ -39,13 +42,17 @@ APP_NAME = r"""
 # Configuration
 class Config:
     MODELS = {
-        "sonnet-4.5": {
+        "sonnet-4.6": {
+            "modelId": "us.anthropic.claude-sonnet-4-6",
+            "description": "(new) sonnet model by anthropic - Feb 16th 2026"
+        },
+        "sonnet-4": {
             "modelId": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
             "description": "High intelligence and speed"
         },
           "opus-4.6": {
               "modelId": "us.anthropic.claude-opus-4-6-v1",
-              "description": "Newest model release by anthropic - February 5th 2026"
+              "description": "opus model but cheaper cost wise - Feb 5th 2026"
  
         },
         "opus-4.1": {
@@ -65,7 +72,31 @@ class Config:
             "description": "Reasoning focused model"
         },
     }
-    DEFAULT_MODEL = "sonnet-4.5"
+    DEFAULT_MODEL = "sonnet-4.6"
+
+# enable vi editor when prompting
+def get_vi_mode_indicator():
+    """
+        returns a formatted string indicating the current vi mode
+    """
+    try:
+        app = get_app()
+        if app.editing_mode == EditingMode.VI:
+            if app.vi_state.input_mode == InputMode.INSERT:
+                return HTML('<ansiyellow><b>[INSERT]</b></ansiyellow>')
+            elif app.vi_state.input_mode == InputMode.INSERT_MULTIPLE:
+                return HTML('<ansiyellow><b>[INSERT-M]</b></ansiyellow>')
+            elif app.vi_state.input_mode == InputMode.REPLACE:
+                return HTML('<ansimagenta><b>[REPLACE]</b></ansimagenta>')
+            else: # normal - navigation mode
+                # check if we're in visual mode by examining the selection state
+                if app.current_buffer.selection_state is not None:
+                    return HTML('<ansicyan><b>[VISUAL]</b></ansicyan>')
+                return HTML('<ansicyan><b>[NORMAL]</b></ansicyan>')
+    except:
+        pass
+    return HTML('')
+        
 
 class ChatSession:
     def __init__(self):
@@ -74,8 +105,8 @@ class ChatSession:
         self.attachments: List[tuple[str, str]] = [] # (filename, content)
         self.last_response: Optional[str] = None
         self.last_code_blocks: List[str] = []
-        self.prompt_session = PromptSession()
-
+        # initialize input prompt with vim editor
+        self.prompt_session = PromptSession(editing_mode=EditingMode.VI)
         # Token and model usage tracking
         self.total_input_tokens: int = 0
         self.total_output_tokens: int = 0
@@ -338,7 +369,12 @@ class ChatSession:
 
                 # Async prompt
                 try:
-                    user_input = await self.prompt_session.prompt_async(HTML(f"\n<b><cyan>You</cyan></b>{prompt_suffix}: "))
+                    # new -> enable input in vim mode
+                    # user_input = await self.prompt_session.prompt_async(HTML(f"\n<b><cyan>You</cyan></b>{prompt_suffix}: "))
+                    user_input = await self.prompt_session.prompt_async(
+                        HTML(f"\n<b><cyan>You</cyan></b>{prompt_suffix}: "),
+                        rprompt=get_vi_mode_indicator
+                    )
                 except EOFError:
                     break
 
